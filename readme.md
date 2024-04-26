@@ -12,7 +12,7 @@
 ```bash
 python web.sh
 ```
-![Command](assets/Command.png)
+![Command](https://github.com/sleepyBear92/rag-dart/blob/master/assets/Command.png)
 
 ## 3. 파일 및 폴더 설명 📂
 
