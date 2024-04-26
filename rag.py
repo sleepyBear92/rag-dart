@@ -1,16 +1,18 @@
 from api import RequestChatGPT
 import re
+from gradio.helpers import Progress
+from langchain_core.documents.base import Document
 
 def divide_question(question:str, key:str, model_name:str):
     # question = "롯데정보통신과 삼성SDS의 사업분야는?"
     messages = [{"role": "system", "content": "내가 기업 분기보고서에 대한 질문을 할테니, 질문을 '주제'와 '기업'으로 분리해서 dictionary 형태로 데이터를 줘."},
                 {"role": "assistant", "content": "네 알겠습니다."},
-                {"role": "user", "content": "[질문]\n삼성SDS와 롯데정보통신에서 진행하는 사업을 비교해줘"},
-                {"role": "assistant", "content": "{'삼성SDS': ['삼성SDS에서 진행하는 사업은?'], '롯데정보통신': ['롯데정보통신에서 진행하는 사업은?']}"},
-                {"role": "user", "content": "[질문]\n삼성SDS와 롯데정보통신의 매출액을 비교해줘."},
-                {"role": "assistant", "content": "{'삼성SDS': ['삼성SDS의 매출액은?'], '롯데정보통신': ['롯데정보통신의 매출액은?']}"},
-                {"role": "user", "content": "[질문]\n롯데정보통신의 최대 주주가 누구야?"},
-                {"role": "assistant", "content": "{'롯데정보통신': ['롯데정보통신의 최대 주주가 누구야?']}"},
+                {"role": "user", "content": "[질문]\n삼성SDS와 LG CNS에서 진행하는 사업을 비교해줘"},
+                {"role": "assistant", "content": "{'삼성SDS': ['삼성SDS에서 진행하는 사업은?'], 'LG CNS': ['LG CNS에서 진행하는 사업은?']}"},
+                {"role": "user", "content": "[질문]\넷마블과 엔씨소프트의 매출액을 비교해줘."},
+                {"role": "assistant", "content": "{'넷마블': ['넷마블의 매출액은?'], '엔씨소프트': ['엔씨소프의 매출액은?']}"},
+                {"role": "user", "content": "[질문]\n만도의 최대 주주가 누구야?"},
+                {"role": "assistant", "content": "{'만도': ['만도의 최대 주주가 누구야?']}"},
                 {"role": "user", "content": "[질문]\n롯데정보통신에서 진행하고 있는 블록체인 사업과 향후 진행 계획을 알려줘."},
                 {"role": "assistant", "content": "{'롯데정보통신': ['롯데정보통신에서 진행하고 있는 블록체인 사업을 알려줘', '롯데정보통신에서 진행하고 있는 블록체인 사업의 향후 진행 계획을 알려줘.']}"},
                 {"role": "user", "content": f"[질문]\n{question}"}]
@@ -21,7 +23,7 @@ def divide_question(question:str, key:str, model_name:str):
     iter_num = 3 # Recreate until the dictionary is generated.
 
     for i in range(iter_num):
-        result = api.summary(model_name, messages)
+        result = api.run(model_name, messages)
         result = eval(result.choices[0].message.content)
         if isinstance(result, dict):
             break
@@ -30,7 +32,7 @@ def divide_question(question:str, key:str, model_name:str):
     assert isinstance(result, dict), f"Expected value to be dictionary, got {type(result)} instead."    
     return result
 
-def match_doc(questions:dict, docsearch:dict, key:str, model_name:str, n_chunk:int=3, intv=30):
+def match_doc(questions:dict, docsearch:dict, key:str, model_name:str, progress:Progress, n_chunk:int=3, intv=30):
     '''
     split_docsearch = {'삼성SDS':[
                                   ['이 문서는..',
@@ -74,7 +76,12 @@ def match_doc(questions:dict, docsearch:dict, key:str, model_name:str, n_chunk:i
 
     # split docs
     # {compnay: [[1~100], [101~200], ... }
-    split_docsearch = {}    
+    split_docsearch = {}  
+
+    # progress
+    start_progress = 0.3
+    end_progress = 0.8
+    per_company_progress = (end_progress-start_progress)/len(questions.keys()) # 0.3에서 0.8로 가는것이므로 0.5를 기준으로 회사 개수로 나눔
     # 질문한 기업의 문서에서만 찾도록 설정 
     for c, qs in questions.items():  
         # 질문한 기업에 대한 문서정보가 있어야함
@@ -102,14 +109,21 @@ def match_doc(questions:dict, docsearch:dict, key:str, model_name:str, n_chunk:i
 
             # 기업별 문서 정보 수집
             match_dic[c] = {}
+
+            # progress
+            per_question_progress = per_company_progress/len(qs)
             
             # 질문 선택
             for q in qs:
                 match_dic[c][q] = []
                 selected_scripts = []
-
+                
+                # progress
+                per_script_pregress = per_question_progress/len(split_docsearch[c])
+                
                 # prompt 형태로 가공
-                for scripts in split_docsearch[c]:
+                
+                for scripts in split_docsearch[c]:                    
                     informs = ""
                     
                     # 이전 phase에서 찾은 문서정보를 신규 문서정보의 앞에 추가
@@ -127,7 +141,7 @@ def match_doc(questions:dict, docsearch:dict, key:str, model_name:str, n_chunk:i
                                 {"role": "assistant", "content": "[3, 4]"},
                                 {"role": "user", "content": f"[질문]\n{q}\n[문서 정보]\n{informs}"}]
                     api = RequestChatGPT(key)
-                    result = api.summary(model_name, messages)
+                    result = api.run(model_name, messages)
                     
                     # 생성 결과 후처리
                     try:
@@ -152,11 +166,38 @@ def match_doc(questions:dict, docsearch:dict, key:str, model_name:str, n_chunk:i
                     for page_num in selected_pages:
                         selected_scripts.append(scripts[page_num])
 
+                    # progress
+                    start_progress += per_script_pregress
+                    progress(start_progress, desc=f"{c}에 대한 정보 검색 중...")
+                
                 # 질문마다 매칭된 스크립트를 문서로 치환
                 for script in selected_scripts:                
                     match_dic[c][q].append(docsearch[c][script])
-
+                
     return match_dic  
+
+def retriever_doc(questions:dict, retriever:dict, progress:Progress):
+    match_dic = {}
+
+    # progress
+    end_progress = 0.8
+    start_progress = 0.3
+    per_company_progress = (end_progress - start_progress)/len(questions.keys())
+    
+    for c, qs in questions.items():
+        match_dic[c] = {}
+
+        # progress
+        per_question_progress = per_company_progress/len(qs)
+        
+        for q in qs:
+            match_dic[c][q] = retriever[c].get_relevant_documents(q)
+
+            # progress
+            progress(start_progress, desc=f"{c}에 대한 정보 검색 중...")
+            start_progress += per_question_progress
+
+    return match_dic
 
 def generate_answer(match_dic:dict, key:str, model_name:str):
     answer_dic = {}
@@ -164,14 +205,17 @@ def generate_answer(match_dic:dict, key:str, model_name:str):
         for q, docs in match_dic[c].items():
             context = ""
             for d in docs:
-                context += d + '\n'
+                if type(d) == Document:
+                    context += d.page_content + '\n'
+                else:
+                    context += d + '\n'
             context = context.strip()
             answer_dic[q] = []
             messages = [{"role": "system", "content": "내가 [질문]을 줄테니 [문서]에서 해당 정보를 찾아줘."},
                         {"role": "assistant", "content": "네 알겠습니다."},
                         {"role": "user", "content": f"[질문]\n{q}\n[문서]\n{context}"}]
             api = RequestChatGPT(key)
-            result = api.summary(model_name, messages)
+            result = api.run(model_name, messages)
             answer_sen = result.choices[0].message.content
             answer_dic[q].append(answer_sen)
     return answer_dic
@@ -186,6 +230,7 @@ def summary_answer(question, answer_dic, key, model_name):
                 {"role": "assistant", "content": "네 알겠습니다."},
                 {"role": "user", "content": f"[질문]\n{question}\n[정보]\n{context}"}]
     api = RequestChatGPT(key)
-    result = api.summary(model_name, messages)
+    result = api.run(model_name, messages)
 
     return result.choices[0].message.content
+

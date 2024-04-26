@@ -16,7 +16,7 @@ class RequestChatGPT:
         self.response_token_num = 300
         os.environ
     
-    def summary(self, model_name: str, messages: list) -> str:
+    def run(self, model_name: str, messages: list) -> str:
         # checking the length of a token       
         # Request API
         if model_name in self.model_info.keys():
