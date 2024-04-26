@@ -10,9 +10,28 @@ notice_markdown = """
 
 examples = ["롯데정보통신에서 하고 있는 사업을 알려줘", "삼성SDS의 최대 주주는?", "삼성SDS, 롯데정보통신, LG CNS 세 기업의 매출 구조를 비교해줘."]
 
+limit = 0
+search_method = "both"
+
 def exc(question, progress=gr.Progress()):
-    answer = run(question, progress)
-    return answer
+    global limit
+    global search_method
+
+    if search_method == "summary":
+        if limit < 10:
+            answer = run(question, search_method, progress)
+            limit += 1
+        else:
+            answer = error(question)
+        return answer
+        
+    else:
+        answer = run(question, search_method, progress)
+        return answer
+        
+def error(question, progress=gr.Progress()):
+    progress(1, desc="Starting...")
+    return "ChatGPT 사용량 제한에 도달했습니다. 관리자가 사이트를 재시작해야합니다."
 
 with gr.Blocks(theme="EveryPizza/Cartoony-Gradio-Theme", title="대화형 공시정보봇") as iface:
     gr.Markdown(notice_markdown, elem_id="notice_markdown")
@@ -20,6 +39,8 @@ with gr.Blocks(theme="EveryPizza/Cartoony-Gradio-Theme", title="대화형 공시
     gr.Examples(examples, inputs=question)
     greet_btn = gr.Button("물어보기")
     output = gr.Textbox(label="답변")
+    
     greet_btn.click(fn=exc, inputs=question, outputs=output)
+
 
 iface.launch(share=True)

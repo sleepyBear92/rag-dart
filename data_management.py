@@ -186,9 +186,9 @@ if __name__ == "__main__":
     
     # 문서 저장 경로
     data_path = config_json["data_info"]["path"]
-    dic_file = config_json["data_info"]["dic_file"]
-    summmary_file = config_json["data_info"]["summary_file"]
-    vector_path = config_json["data_info"]["vector_path"]
+    dic_file = data_path + config_json["data_info"]["dic_file"]
+    summary_file = data_path + config_json["data_info"]["summary_file"]
+    vector_path = data_path + config_json["data_info"]["vector_path"]
     
     # 모델 경로
     embedding_model_path =  config_json["model_info"]["embedding_path"]
@@ -198,7 +198,7 @@ if __name__ == "__main__":
     # pdf -> dictionary
     docs_dic = fetch_data(config_json["docs_info"]["path"])
     
-    with open(data_path+dic_file, 'wb') as f:
+    with open(dic_file, 'wb') as f:
         pickle.dump(docs_dic, f)
     
     # docs_dic은 key를 회사명으로 하고 value는 list
@@ -207,7 +207,7 @@ if __name__ == "__main__":
     
     if db_type == "openai":
         docsearch = parse_data(docs_dic, config_file["api_info"]["key"], config_file["api_info"]["model_name"])
-        with open(data_path+summary_file, 'wb') as f:
+        with open(summary_file, 'wb') as f:
             pickle.dump(docsearch, f)
     elif db_type == "embedding":
         if content_type == "full": # 문서 전체 chunk를 기반으로 embedding

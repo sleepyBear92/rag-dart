@@ -4,8 +4,8 @@ from rag import divide_question, match_doc, generate_answer, summary_answer, ret
 
 config_file = "config.json"
 
-def run(question, progress):
-    search_method = "both"
+def run(question, search_method, progress):
+    # search_method = "both"
     
     progress(0, desc="Starting...")
     
