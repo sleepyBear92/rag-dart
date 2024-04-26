@@ -1,0 +1,19 @@
+{
+    "api_info": {
+        "key": "{https://platform.openai.com/account/api-keys}",
+        "model_name": "gpt-4-turbo-preview"
+    },
+    "model_info": {
+        "embedding_path": "LDCC/LDCC-SRoBERTa",
+        "hf_token": "{https://huggingface.co/docs/hub/security-tokens}"
+    },
+    "docs_info": {
+        "path": "/root/nlp/woonggilee/rag-dart/docs/"
+    },
+    "data_info": {
+        "path": "db/",
+        "summary_file": "summary/ChunkBrief.pkl",
+        "vector_path" : "faiss/",
+        "dic_file": "Chunk.pkl"
+    }
+}
