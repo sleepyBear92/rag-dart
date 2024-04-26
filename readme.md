@@ -3,9 +3,17 @@
 ## 1. 개요 📜
 이 프로젝트는 **ChatGPT**와 **LangChain**을 사용하여 **DART 자료**에 대한 질의응답 챗봇을 구현합니다. 사용자 인터페이스는 **Gradio**를 통해 간단하고 직관적으로 제작되었습니다.
 
+- ChatGPT기반 요약 방식의 RAG
+![summary](https://github.com/sleepyBear92/rag-dart/blob/master/assets/demo_summary.gif)
+
+- LangChain기반 embedding 방식의 RAG
+![embedding](https://github.com/sleepyBear92/rag-dart/blob/master/assets/demo_embedding.gif)
+
+
 ### 주요 기능:
 - **ChatGPT 기반 RAG**: 문서의 각 페이지를 ChatGPT를 사용하여 요약하고, 이 요약을 바탕으로 RAG(Retrieval-Augmented Generation)가 작동합니다. 📘 (참고: 비용 문제로 **삼성SDS**, **LG CNS**, **롯데정보통신** 세 개 기업만 지원합니다.)
 - **LangChain 기반 RAG**: Embedding 모델을 사용하여 문서를 벡터화하고, 이 벡터 정보를 바탕으로 RAG가 작동합니다. �� (docs 폴더 내 전체 기업 지원 가능)
+
 
 ## 2. 실행 방법 🚀
 본 소스는 Python 3.8 버전을 기준으로 작성되었습니다. 기타 라이브러리는 requirements.txt를 참고하세요.
@@ -14,6 +22,7 @@
 python web.sh
 ```
 ![Command](https://github.com/sleepyBear92/rag-dart/blob/master/assets/Command.png)
+
 
 ## 3. 파일 및 폴더 설명 📂
 
